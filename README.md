@@ -44,7 +44,7 @@ systemctl start glusterd
 systemctl enable glusterd
 ```
 
-# 初始化集群
+## 初始化集群
 ```shell script
 # 将节点加入到glusterfs集群中,需要到三台机器节点上都执行下面命令
 gluster peer probe glusterfs01
@@ -108,7 +108,7 @@ Task Status of Volume gfs
 There are no active volume tasks
 ```
 
-# 客户端挂载写入数据
+## 客户端挂载写入数据
 ```shell script
 # 安装软件,支持挂在glusterfs格式的文件
 yum install centos-release-gluster -y
