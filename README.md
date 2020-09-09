@@ -125,3 +125,72 @@ EOF
 mount -t glusterfs glusterfs01:/gfs /mnt
 touch  /mnt/{1..10}
 ```
+
+## GlusterFS的7种卷
+```shell script
+# 为了满足不同应用对高性能、高可用的需求，GlusterFS 支持 7 种卷，
+# 基础卷：分布式卷（distribute）、条带卷（stripe）、复制卷（replica）、纠错卷（Dispersed ）
+# 复合卷：分布式条带卷（distribute stripe）、分布式复制卷（distribute replica）、条带复制卷（stripe replica）、分布式条带复制卷（distribute stripe）
+
+# 分布卷：存储数据时，将文件随机存储到各台glusterfs机器上。
+#        优点：存储数据时，读取速度快
+#        缺点：一个birck坏掉，文件就会丢失
+# 复制卷：存储数据时，所有文件分别存储到每台glusterfs机器上。
+#        优点：对文件进行的多次备份，一个brick坏掉，文件不会丢失，其他机器的brick上面有备份
+#        缺点：占用资源
+# 条带卷：存数据时，一个文件分开存到每台glusterfs机器上
+#        优点：对大文件，读写速度快
+#        缺点：一个brick坏掉，文件就会坏掉
+
+# 1)分布式卷
+[root@glusterfs01 ~]# mkdir -p /data/pv2/ /default_volume
+[root@glusterfs01 ~]# gluster volume create default_volume glusterfs01:/data/pv2/ glusterfs02:/data/pv2/ glusterfs03:/data/pv2/
+[root@glusterfs01 ~]# gluster volume start default_volume
+[root@glusterfs01 ~]# mount -t glusterfs glusterfs02:/default_volume /default_volume
+[root@glusterfs01 default_volume]# cd /default_volume/
+[root@glusterfs01 default_volume]# touch {a..z}.txt
+[root@glusterfs01 default_volume]# ls
+a.txt  b.txt  c.txt  d.txt  e.txt  f.txt  g.txt  h.txt  i.txt  j.txt  k.txt  l.txt  m.txt  n.txt  o.txt  p.txt  q.txt  r.txt  s.txt  t.txt  u.txt  v.txt  w.txt  x.txt  y.txt  z.txt
+[root@glusterfs01 ~]# ls /data/pv2/
+b.txt  e.txt  l.txt  r.txt  x.txt  z.txt
+[root@glusterfs02 ~]# ls /data/pv2/
+a.txt  c.txt  d.txt  g.txt  k.txt  n.txt  o.txt  s.txt  u.txt  v.txt  w.txt  y.txt
+[root@glusterfs03 ~]# ls /data/pv2/
+f.txt  h.txt  i.txt  j.txt  m.txt  p.txt  q.txt  t.txt
+
+# 2)复制式卷
+[root@glusterfs01 ~]# mkdir /data/pv3
+[root@glusterfs01 ~]# gluster volume create replica_volume replica 3 glusterfs01:/data/pv3/ glusterfs02:/data/pv3/ glusterfs03:/data/pv3/
+[root@glusterfs01 ~]# gluster volume start replica_volume
+[root@glusterfs01 ~]# mkdir /replica_volume
+[root@glusterfs01 ~]# mount -t glusterfs glusterfs02:/replica_volume /replica_volume/
+[root@glusterfs01 ~]# touch /replica_volume/{00..10}.txt
+[root@glusterfs01 ~]# ls /data/pv3/
+00.txt  01.txt  02.txt  03.txt  04.txt  05.txt  06.txt  07.txt  08.txt  09.txt  10.txt
+[root@glusterfs02 ~]# ls /data/pv3/
+00.txt  01.txt  02.txt  03.txt  04.txt  05.txt  06.txt  07.txt  08.txt  09.txt  10.txt
+[root@glusterfs03 ~]# ls /data/pv3/
+00.txt  01.txt  02.txt  03.txt  04.txt  05.txt  06.txt  07.txt  08.txt  09.txt  10.txt
+
+# 3)条带卷
+[root@glusterfs01 ~]# gluster volume create stripe-volume stripe 2 glusterfs01:/data/pv4/ glusterfs02:/data/pv4/ force
+stripe option not supported
+
+# 4)分布式条带卷
+[root@node1 ~]# gluster volume create dis-stripe stripe 2 node1:/b3 node2:/b3 node3:/b3 node4:/b3 force
+stripe option not supported
+
+# 5)分布式复制卷
+gluster volume create dis_rep_volume replica 2 glusterfs01:/data/pv5/ glusterfs02:/data/pv5/ glusterfs03:/data/pv5/ glusterfs04:/data/pv5/
+gluster volume start dis_rep_volume
+mkdir /dis_rep_volume
+mount -t glusterfs glusterfs02:/dis_rep_volume /dis_rep_volume/
+[root@glusterfs01 ~]# ls /data/pv5
+00  01  02  03  04  05  08  a  b  c  e  g  j  k  l  m  n  o  p  q  r  t  u  w  y
+[root@glusterfs02 ~]# ls /data/pv5
+00  01  02  03  04  05  08  a  b  c  e  g  j  k  l  m  n  o  p  q  r  t  u  w  y
+[root@glusterfs03 ~]# ls /data/pv5
+06  07  09  10  d  f  h  i  s  v  x  z
+[root@glusterfs04 ~]# ls /data/pv5
+06  07  09  10  d  f  h  i  s  v  x  z
+```
